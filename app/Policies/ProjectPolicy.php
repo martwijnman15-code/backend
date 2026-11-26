@@ -1,58 +1,35 @@
 <?php
+
 namespace App\Policies;
 
 use App\Models\Project;
 use App\Models\User;
-use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ProjectPolicy
 {
-    use HandlesAuthorization;
-
-    public function viewAny(?User $user): bool
+    public function viewAny(User $user): bool
     {
-        if ($user->role == "admin") {
-            return true;
-        }
+        return $user->role === 'admin';
     }
 
-    public function view(?User $user, Project $project): bool
+    // A project belongs to the user linked to its customer, not to a matching numeric ID.
+    public function view(User $user, Project $project): bool
     {
-        if ($user->role == "admin") {
-            return true;
-        }
-        
-        else if ($user->id == $project->customer_id) {
-            return true;
-        }
+        return $user->role === 'admin' || ($project->customer && $project->customer->user_id === $user->id);
     }
 
     public function store(User $user): bool
     {
-        if ($user->role == "admin") {
-            return true;
-        }
+        return $user->role === 'admin';
     }
 
     public function update(User $user, Project $project): bool
     {
-        if ($user->id == $project->customer_id) {
-            return true;
-        }
-
-        if ($user->id == $project->customer_id) {
-            return true;
-        }
-
-        if ($user->id != $project->customer_id) {
-            return false;
-        }
+        return $user->role === 'admin' || ($project->customer && $project->customer->user_id === $user->id);
     }
 
     public function delete(User $user, Project $project): bool
     {
-        if ($user->id == $project->customer_id) {
-            return true;
-        }
+        return $user->role === 'admin' || ($project->customer && $project->customer->user_id === $user->id);
     }
 }

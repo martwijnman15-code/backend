@@ -9,7 +9,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-
 class CreateCustomerMail extends Mailable
 {
     use Queueable, SerializesModels;
@@ -38,7 +37,7 @@ class CreateCustomerMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.name',
+            view: 'emails.notification',
         );
     }
 

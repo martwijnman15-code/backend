@@ -5,69 +5,55 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Customer;
+use App\Models\Project;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        Gate::authorize('viewAny', auth()->user());
+        Gate::authorize('viewAny', User::class);
 
-        $search = $request->query('search');
-
-        $cacheKey = 'users:'.md5((string) $search);
-
-        return UserResource::collection(Cache::remember($cacheKey, 600, function () use ($search) {
-            return User::query()
-                ->when($search, function ($query, $search) {
-                    $query->where('name', 'like', "%{$search}%");
-                })
-                ->get();
-        }));
+        return UserResource::collection(User::query()->when($request->query('search'), fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))->get());
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(UserRequest $request)
     {
-        Gate::authorize('store', auth()->user());
+        Gate::authorize('store', User::class);
 
-        return new UserResource(User::create($request->validate()));
+        return new UserResource(User::create($request->validated()));
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(User $user)
     {
-        Gate::authorize('view', auth()->user());
+        Gate::authorize('view', $user);
 
         return new UserResource($user);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UserRequest $request, User $user)
     {
-        Gate::authorize('update', auth()->user());
+        Gate::authorize('update', $user);
+        $user->update($request->validated());
 
         return response()->noContent();
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(User $user)
     {
-        Gate::authorize('delete', auth()->user());
-        Cache::forgot('users');
+        Gate::authorize('delete', $user);
+        if ($user->id === request()->user()->id) {
+            return response()->json(['message' => 'You cannot delete your own account.'], 422);
+        }
+        if (Customer::where('user_id', $user->id)->exists() || Project::where('user_id', $user->id)->exists() || DB::table('customers_before_api_repair')->where('user_id', $user->id)->exists()) {
+            return response()->json(['message' => 'This user is linked to customer or project records.'], 409);
+        }
+
+        $user->delete();
 
         return response()->noContent();
     }

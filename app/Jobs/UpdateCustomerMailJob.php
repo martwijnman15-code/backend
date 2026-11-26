@@ -2,23 +2,20 @@
 
 namespace App\Jobs;
 
+use App\Mail\UpdateCustomerMail;
+use App\Models\Customer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Mail;
 
-use App\Models\User;
-use App\Mail\UpdateProjectMail;
-
-class UpdateProjectMailJob implements ShouldQueue
+class UpdateCustomerMailJob implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(
-        public User $customer
-    ) {}
+    public function __construct(public Customer $customer) {}
 
     public function handle(): void
     {
-        Mail::to($this->customer->mail)
-            ->send(new UpdateProjectMail($this->customer));
+        Mail::to($this->customer->mail_address)->send(new UpdateCustomerMail);
     }
 }
